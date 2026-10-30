@@ -1,0 +1,33 @@
+name: Image range Linux validation
+on:
+  push:
+    branches: [validation/image-range-oct30]
+permissions:
+  contents: read
+jobs:
+  image-range:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and focused test dependencies
+        run: python -m pip install -e . pytest matplotlib plotly
+      - name: Verify actual source and extended longdouble
+        run: |
+          python -c "import numpy as np, visdom; print(visdom.__file__); print(np.finfo(np.longdouble)); assert np.finfo(np.longdouble).max > np.finfo(np.float64).max"
+      - name: Run image, helper and media regressions
+        run: python -m pytest py/tests/unit/image_normalization_range.py py/tests/unit/client_helpers.py py/tests/unit/client_payloads_media.py --junitxml=image-results.xml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: image-results-${{ matrix.python-version }}
+          path: image-results.xml
