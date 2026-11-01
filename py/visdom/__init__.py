@@ -4740,13 +4740,15 @@ class Visdom(object):
             if i in opt_tickvals:
                 dim["tickvals"] = opt_tickvals[i]
             if i in opt_ticktext:
-                assert (
-                    i in opt_tickvals
-                ), "opts.ticktext[%d] requires matching opts.tickvals[%d]" % (i, i)
-                assert len(opt_ticktext[i]) == len(opt_tickvals[i]), (
-                    "opts.ticktext[%d] and opts.tickvals[%d] must have the same length"
-                    % (i, i)
-                )
+                if i not in opt_tickvals:
+                    raise ValueError(
+                        "opts.ticktext[%d] requires matching opts.tickvals[%d]" % (i, i)
+                    )
+                if len(opt_ticktext[i]) != len(opt_tickvals[i]):
+                    raise ValueError(
+                        "opts.ticktext[%d] and opts.tickvals[%d] must have the same length"
+                        % (i, i)
+                    )
                 dim["ticktext"] = opt_ticktext[i]
             dimensions.append(dim)
 

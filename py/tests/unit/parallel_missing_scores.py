@@ -277,3 +277,54 @@ def test_scores_keep_existing_singleton_axis_support(capture_send, scores):
     trace = sent["payload"]["data"][0]
     assert trace["line"]["color"] == [0.1, 0.2]
     assert trace["dimensions"][0]["values"] == [1.0, 3.0]
+
+
+@pytest.mark.parametrize("optimized", [False, True])
+def test_tick_label_validation_survives_optimization(optimized):
+    command = [sys.executable]
+    if optimized:
+        command.append("-O")
+    command.extend(
+        [
+            "-c",
+            """
+from unittest.mock import Mock
+from visdom import Visdom
+
+client = Visdom.__new__(Visdom)
+client._send = Mock()
+for axis in (0, 1):
+    cases = [
+        ({"ticktext": {axis: ["a"]}}, "requires matching opts.tickvals"),
+        ({"ticktext": {axis: ["a", "b"]}, "tickvals": {axis: [1]}},
+         "must have the same length"),
+    ]
+    for opts, message in cases:
+        try:
+            client.parallel_coordinates([[1., 2.], [3., 4.]], opts=opts)
+        except ValueError as error:
+            if message not in str(error):
+                raise RuntimeError("Unexpected validation message: %s" % error)
+        else:
+            raise RuntimeError("Invalid ticks accepted: %r" % opts)
+client._send.assert_not_called()
+client.parallel_coordinates(
+    [[1., 2.], [3., 4.]],
+    opts={"ticktext": {0: ["a", "b"], 1: ["c", "d"]},
+          "tickvals": {0: [1., 3.], 1: [2., 4.]}},
+)
+dimensions = client._send.call_args.args[0]["data"][0]["dimensions"]
+if dimensions[0]["ticktext"] != ["a", "b"] or dimensions[1]["tickvals"] != [2., 4.]:
+    raise RuntimeError("Valid tick values or labels changed")
+""",
+        ]
+    )
+    result = subprocess.run(
+        command,
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr

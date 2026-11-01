@@ -636,7 +636,6 @@ def test_parallel_coordinates_keeps_an_explicit_size(capture_send):
     assert sent["payload"]["opts"]["height"] == 45
 
 
-@requires_assertions
 @pytest.mark.parametrize(
     "kwargs, message",
     [
@@ -654,5 +653,5 @@ def test_parallel_coordinates_keeps_an_explicit_size(capture_send):
     ],
 )
 def test_parallel_coordinates_rejects_malformed_input(offline_client, kwargs, message):
-    with pytest.raises(AssertionError, match=message):
+    with pytest.raises(ValueError, match=message):
         offline_client.parallel_coordinates(**kwargs)
