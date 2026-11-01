@@ -907,3 +907,17 @@ def test_register_embeddings_lasso_groups_do_not_depend_on_points(
         ]
         assert [point["label"] for point in selected] == [labels[i] for i in selection]
         assert [point["idx"] for point in selected] == selection
+
+
+@pytest.mark.parametrize(
+    "labels", [[1, 3, 1], [2.5, -1.5, 2.5], ["zebra", "ant", "zebra"]]
+)
+def test_embeddings_reuses_groups_when_registering_events(offline_client, labels):
+    from visdom import _normalize_labels
+
+    offline_client.use_socket = True
+    with patch("visdom._normalize_labels", wraps=_normalize_labels) as normalize, patch(
+        "visdom.do_tsne", return_value=TSNE_XY
+    ), patch.object(offline_client, "_send", return_value="w"):
+        offline_client.embeddings(FEATURES, labels, env="e")
+    normalize.assert_called_once_with(labels)

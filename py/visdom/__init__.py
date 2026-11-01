@@ -2042,7 +2042,16 @@ class Visdom(object):
             raise RuntimeError("Plotly must be installed to plot Plotly figures")
 
     def _register_embeddings(
-        self, features, labels, points, data_getter, data_type, win, env, opts
+        self,
+        features,
+        labels,
+        points,
+        data_getter,
+        data_type,
+        win,
+        env,
+        opts,
+        label_groups=None,
     ):
         self.win_data[win] = {
             "features": features,
@@ -2054,8 +2063,9 @@ class Visdom(object):
             "opts": opts,
         }
 
-        labels_normalized, _, _ = _normalize_labels(labels)
-        _, label_groups = np.unique(labels_normalized, return_inverse=True)
+        if label_groups is None:
+            labels_normalized, _, _ = _normalize_labels(labels)
+            _, label_groups = np.unique(labels_normalized, return_inverse=True)
 
         def embedding_event_handler(event):
             window = event["target"]
@@ -2191,7 +2201,15 @@ class Visdom(object):
 
         if opts.get("register_embedding_events", True):
             self._register_embeddings(
-                features, labels, points, data_getter, data_type, win, env, opts
+                features,
+                labels,
+                points,
+                data_getter,
+                data_type,
+                win,
+                env,
+                opts,
+                label_groups=label_groups,
             )
         return win
 
